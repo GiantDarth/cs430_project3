@@ -8,24 +8,37 @@
 
 #define TYPE_SPHERE 0
 #define TYPE_PLANE 1
+#define TYPE_LIGHT 2
 
 typedef struct sceneObj {
     int type;
-    pixel color;
     union {
         struct {
             vector3d pos;
             double radius;
+            pixel diffuse;
+            pixel specular;
         } sphere;
         struct {
             vector3d pos;
             vector3d normal;
+            pixel diffuse;
+            pixel specular;
         } plane;
         struct {
             vector3d pos;
             double radius;
             double height;
+            pixel diffuse;
+            pixel specular;
         } cylinder;
+        struct {
+            vector3d pos;
+            vector3d dir;
+            pixel color;
+            double radialAtten[3];
+            double angularAtten[3];
+        } light;
     };
 } sceneObj;
 

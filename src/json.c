@@ -13,13 +13,19 @@
 #define CAMERA_WIDTH_FLAG 0x1
 #define CAMERA_HEIGHT_FLAG 0x2
 
-#define SPHERE_COLOR_FLAG 0x1
-#define SPHERE_POS_FLAG 0x2
-#define SPHERE_RAD_FLAG 0x4
+#define SPHERE_POS_FLAG 0x1
+#define SPHERE_RAD_FLAG 0x2
+#define SPHERE_DIFFUSE_FLAG 0x4
+#define SPHERE_SPECULAR_FLAG 0x8
 
-#define PLANE_COLOR_FLAG 0x1
-#define PLANE_POS_FLAG 0x2
-#define PLANE_NORMAL_FLAG 0x4
+#define PLANE_POS_FLAG 0x1
+#define PLANE_NORMAL_FLAG 0x2
+#define PLANE_DIFFUSE_FLAG 0x4
+#define PLANE_SPECULAR_FLAG 0x8
+
+#define LIGHT_POS_FLAG 0x1
+#define LIGHT_DIR_FLAG 0x2
+#define LIGHT_COLOR_FLAG 0x4
 
 void errorCheck(int c, FILE* json, size_t line);
 void tokenCheck(int c, char token, size_t line);
@@ -104,7 +110,8 @@ jsonObj readScene(const char* path) {
         skipWhitespace(json, &line);
         type = nextString(json, &line);
 
-        if(strcmp(type, "plane") == 0 || strcmp(type, "sphere") == 0) {
+        if(strcmp(type, "plane") == 0 || strcmp(type, "sphere") == 0 ||
+                strcmp(type, "light") == 0) {
             if((objs = realloc(objs, ++objsSize * sizeof(*objs))) == NULL) {
                 fprintf(stderr, "Error: Line %zu: Memory reallocation error\n",
                     line);
@@ -119,6 +126,9 @@ jsonObj readScene(const char* path) {
             }
             else if(strcmp(type, "sphere") == 0) {
                 objs[objsSize - 1].type = TYPE_SPHERE;
+            }
+            else if(strcmp(type, "light") == 0) {
+                objs[objsSize - 1].type = TYPE_LIGHT;
             }
         }
         else if(strcmp(type, "camera") != 0) {
@@ -180,17 +190,7 @@ jsonObj readScene(const char* path) {
                 }
             }
             else if(strcmp(type, "sphere") == 0) {
-                if(strcmp(key, "color") == 0) {
-                    if(keyFlag & SPHERE_COLOR_FLAG) {
-                        fprintf(stderr, "Error: Line %zu: 'color' already defined\n",
-                            line);
-                        exit(EXIT_FAILURE);
-                    }
-                    keyFlag |= SPHERE_COLOR_FLAG;
-
-                    objs[objsSize - 1].color = nextColor(json, &line);
-                }
-                else if(strcmp(key, "position") == 0) {
+                if(strcmp(key, "position") == 0) {
                     if(keyFlag & SPHERE_POS_FLAG) {
                         fprintf(stderr, "Error: Line %zu: 'position' already defined\n",
                             line);
@@ -215,6 +215,26 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= SPHERE_RAD_FLAG;
                 }
+                else if(strcmp(key, "diffuse_color") == 0) {
+                    if(keyFlag & SPHERE_DIFFUSE_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'diffuse_color' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= SPHERE_DIFFUSE_FLAG;
+
+                    objs[objsSize - 1].sphere.diffuse = nextColor(json, &line);
+                }
+                else if(strcmp(key, "specular_color") == 0) {
+                    if(keyFlag & SPHERE_SPECULAR_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'specular_color' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= SPHERE_SPECULAR_FLAG;
+
+                    objs[objsSize - 1].sphere.specular = nextColor(json, &line);
+                }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
                         "under 'sphere'\n", line, key);
@@ -222,17 +242,7 @@ jsonObj readScene(const char* path) {
                 }
             }
             else if(strcmp(type, "plane") == 0) {
-                if(strcmp(key, "color") == 0) {
-                    if(keyFlag & PLANE_COLOR_FLAG) {
-                        fprintf(stderr, "Error: Line %zu: 'color' already defined\n",
-                            line);
-                        exit(EXIT_FAILURE);
-                    }
-                    keyFlag |= PLANE_COLOR_FLAG;
-
-                    objs[objsSize - 1].color = nextColor(json, &line);
-                }
-                else if(strcmp(key, "position") == 0) {
+                if(strcmp(key, "position") == 0) {
                     if(keyFlag & PLANE_POS_FLAG) {
                         fprintf(stderr, "Error: Line %zu: 'position' already defined\n",
                             line);
@@ -252,10 +262,62 @@ jsonObj readScene(const char* path) {
 
                     objs[objsSize - 1].plane.normal = nextVector3d(json, &line);
                 }
+                else if(strcmp(key, "diffuse_color") == 0) {
+                    if(keyFlag & PLANE_DIFFUSE_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'diffuse_color' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= PLANE_DIFFUSE_FLAG;
+
+                    objs[objsSize - 1].plane.diffuse = nextColor(json, &line);
+                }
+                else if(strcmp(key, "specular_color") == 0) {
+                    if(keyFlag & SPHERE_DIFFUSE_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'specular_color' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= PLANE_SPECULAR_FLAG;
+
+                    objs[objsSize - 1].plane.specular = nextColor(json, &line);
+                }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
                         "under 'plane'\n", line, key);
                     exit(EXIT_FAILURE);
+                }
+            }
+            else if(strcmp(type, "light") == 0) {
+                if(strcmp(key, "position") == 0) {
+                    if(keyFlag & LIGHT_POS_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'position' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= LIGHT_POS_FLAG;
+
+                    objs[objsSize - 1].light.pos = nextVector3d(json, &line);
+                }
+                else if(strcmp(key, "direction") == 0) {
+                    if(keyFlag & LIGHT_DIR_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'direction' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= LIGHT_DIR_FLAG;
+
+                    objs[objsSize - 1].light.dir = nextVector3d(json, &line);
+                }
+                else if(strcmp(key, "color") == 0) {
+                    if(keyFlag & LIGHT_COLOR_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'color' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= LIGHT_COLOR_FLAG;
+
+                    objs[objsSize - 1].light.color = nextColor(json, &line);
                 }
             }
 
@@ -275,11 +337,6 @@ jsonObj readScene(const char* path) {
             }
         }
         else if(strcmp(type, "sphere") == 0) {
-            if(!(keyFlag & SPHERE_COLOR_FLAG)) {
-                fprintf(stderr, "Error: Line %zu: 'sphere' missing 'color' "
-                    "property missing\n", line);
-                exit(EXIT_FAILURE);
-            }
             if(!(keyFlag & SPHERE_RAD_FLAG)) {
                 fprintf(stderr, "Error: Line %zu: 'sphere' missing 'radius' "
                     "property missing\n", line);
@@ -291,13 +348,18 @@ jsonObj readScene(const char* path) {
                     "property missing\n", line);
                 exit(EXIT_FAILURE);
             }
-        }
-        else if(strcmp(type, "plane") == 0) {
-            if(!(keyFlag & PLANE_COLOR_FLAG)) {
-                fprintf(stderr, "Error: Line %zu: 'plane' missing 'color' "
+            if(!(keyFlag & SPHERE_DIFFUSE_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'sphere' missing 'diffuse_color' "
                     "property missing\n", line);
                 exit(EXIT_FAILURE);
             }
+            if(!(keyFlag & SPHERE_SPECULAR_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'sphere' missing 'specular_color' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if(strcmp(type, "plane") == 0) {
             if(!(keyFlag & PLANE_POS_FLAG)) {
                 fprintf(stderr, "Error: Line %zu: 'plane' missing 'position' "
                     "property missing\n", line);
@@ -305,6 +367,28 @@ jsonObj readScene(const char* path) {
             }
             if(!(keyFlag & PLANE_NORMAL_FLAG)) {
                 fprintf(stderr, "Error: Line %zu: 'plane' missing 'normal' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+            if(!(keyFlag & SPHERE_DIFFUSE_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'plane' missing 'diffuse_color' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+            if(!(keyFlag & SPHERE_SPECULAR_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'plane' missing 'specular_color' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if(strcmp(type, "light") == 0) {
+            if(!(keyFlag & LIGHT_POS_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'light' missing 'position' "
+                    "property missing\n", line);
+                exit(EXIT_FAILURE);
+            }
+            if(!(keyFlag & LIGHT_COLOR_FLAG)) {
+                fprintf(stderr, "Error: Line %zu: 'light' missing 'color' "
                     "property missing\n", line);
                 exit(EXIT_FAILURE);
             }
