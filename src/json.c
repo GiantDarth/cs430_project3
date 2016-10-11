@@ -273,7 +273,7 @@ jsonObj readScene(const char* path) {
                     objs[objsSize - 1].plane.diffuse = nextColor(json, &line);
                 }
                 else if(strcmp(key, "specular_color") == 0) {
-                    if(keyFlag & SPHERE_DIFFUSE_FLAG) {
+                    if(keyFlag & PLANE_SPECULAR_FLAG) {
                         fprintf(stderr, "Error: Line %zu: 'specular_color' already defined\n",
                             line);
                         exit(EXIT_FAILURE);
