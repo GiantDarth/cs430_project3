@@ -69,7 +69,16 @@ const sceneObj* shoot(ray ray, const sceneObj* objs, size_t objsSize) {
 }
 
 pixel shade(sceneObj intersected) {
-    return intersected.color;
+    pixel color = { 0 };
+    if(intersected.type == TYPE_SPHERE) {
+        return intersected.sphere.diffuse;
+    }
+    else if(intersected.type == TYPE_PLANE) {
+        return intersected.plane.diffuse;
+    }
+    else {
+        return color;
+    }
 }
 
 double plane_intersection(ray ray, sceneObj obj) {
