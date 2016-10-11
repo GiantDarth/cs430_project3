@@ -1,5 +1,5 @@
 # raycast
-### CS430 - Project 2 (Basic Raycaster)
+### CS430 - Project 3 (Illumination)
 **Christopher Robert Philabaum**
 
 **Northern Arizona University (Fall 2016)**
