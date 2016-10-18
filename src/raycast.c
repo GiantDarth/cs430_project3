@@ -5,17 +5,17 @@
 
 #include "raycast.h"
 
-typedef struct shootValue {
+typedef struct shootObj {
     double t;
     sceneObj* obj;
-} shootValue;
+} shootObj;
 
 double sphere_intersection(ray ray, sceneObj* obj);
 double plane_intersection(ray ray, sceneObj* obj);
 double cylinder_intersection(ray ray, sceneObj* obj);
 
-shootValue shoot(ray ray, sceneObj** objs);
-pixel shade(sceneObj* intersected, double t);
+shootObj shoot(ray ray, sceneObj** objs);
+pixel shade(double t, sceneObj* intersected, sceneObj** objs, sceneLight** lights);
 
 void raycast(pixel* pixels, size_t width, size_t height, camera camera,
         sceneObj** objs, sceneLight** lights) {
@@ -24,7 +24,7 @@ void raycast(pixel* pixels, size_t width, size_t height, camera camera,
     const double PIXEL_HEIGHT = camera.height / height;
 
     vector3d point;
-    shootValue intersected;
+    shootObj closest;
     // Initialize ray as origin and dir of { 0, 0, 0 }
     ray ray = { 0 };
     point.z = center.z;
@@ -39,20 +39,20 @@ void raycast(pixel* pixels, size_t width, size_t height, camera camera,
         for(size_t x = 0; x < width; x++) {
             point.x = center.x - (camera.width / 2) + PIXEL_WIDTH * (x + 0.5);
             ray.dir = vector3d_normalize(point);
-            intersected = shoot(ray, objs);
-            if(intersected.obj != NULL) {
-                pixels[y * width + x] = shade(intersected.obj, intersected.t);
+            closest = shoot(ray, objs);
+            if(closest.obj != NULL) {
+                pixels[y * width + x] = shade(closest.t, closest.obj,
+                    objs, lights);
             }
         }
     }
 }
 
-shootValue shoot(ray ray, sceneObj** objs) {
-    double closest = INFINITY;
-    sceneObj* closestObj = NULL;
+shootObj shoot(ray ray, sceneObj** objs) {
+    double closestValue = INFINITY;
     double t;
 
-    shootValue shootValue = { 0 };
+    shootObj closest = { 0 };
 
     for(size_t i = 0; objs[i] != NULL; i++) {
         switch(objs[i]->type) {
@@ -66,25 +66,22 @@ shootValue shoot(ray ray, sceneObj** objs) {
                 fprintf(stderr, "Error: Invalid obj type\n");
                 exit(EXIT_FAILURE);
         }
-        if(t > 0 && t < closest) {
-            closest = t;
-            closestObj = objs[i];
+        if(t > 0 && t < closestValue) {
+            closest.t = t;
+            closest.obj = objs[i];
         }
     }
 
-    shootValue.t = closest;
-    shootValue.obj = closestObj;
-
-    return shootValue;
+    return closest;
 }
 
-pixel shade(sceneObj* intersected, double t) {
+pixel shade(double t, sceneObj* closest, sceneObj** objs, sceneLight** lights) {
     pixel color = { 0 };
-    if(intersected->type == TYPE_SPHERE) {
-        return intersected->sphere.diffuse;
+    if(closest->type == TYPE_SPHERE) {
+        return closest->sphere.diffuse;
     }
-    else if(intersected->type == TYPE_PLANE) {
-        return intersected->plane.diffuse;
+    else if(closest->type == TYPE_PLANE) {
+        return closest->plane.diffuse;
     }
     else {
         return color;
