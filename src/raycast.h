@@ -32,15 +32,16 @@ typedef struct sceneObj {
             pixel diffuse;
             pixel specular;
         } cylinder;
-        struct {
-            vector3d pos;
-            vector3d dir;
-            pixel color;
-            double radialAtten[3];
-            double angularAtten[3];
-        } light;
     };
 } sceneObj;
+
+typedef struct sceneLight {
+    vector3d pos;
+    vector3d dir;
+    pixel color;
+    double radialAtten[3];
+    double angularAtten[3];
+} sceneLight;
 
 typedef struct camera {
     float width;
@@ -53,6 +54,6 @@ typedef struct ray {
 } ray;
 
 void raycast(pixel* pixels, size_t width, size_t height, camera camera,
-        const sceneObj* objs, size_t objsSize);
+        sceneObj** objs, sceneLight** lights);
 
 #endif // CS430_RAYCAST_H

@@ -44,9 +44,10 @@ jsonObj readScene(const char* path) {
         exit(EXIT_FAILURE);
     }
 
-    camera camera = { 0 };
-    sceneObj* objs = NULL;
+    sceneObj* obj;
     size_t objsSize = 0;
+    sceneLight* light;
+    size_t lightsSize = 0;
 
     jsonObj jsonObj = { 0 };
 
@@ -112,24 +113,35 @@ jsonObj readScene(const char* path) {
 
         if(strcmp(type, "plane") == 0 || strcmp(type, "sphere") == 0 ||
                 strcmp(type, "light") == 0) {
-            if((objs = realloc(objs, ++objsSize * sizeof(*objs))) == NULL) {
+            if((obj = malloc(sizeof(*obj))) == NULL) {
                 fprintf(stderr, "Error: Line %zu: Memory reallocation error\n",
                     line);
                 perror("");
                 exit(EXIT_FAILURE);
             }
 
-            memset(&(objs[objsSize - 1]), 0, sizeof(objs[objsSize - 1]));
+            memset(obj, 0, sizeof(*obj));
 
             if(strcmp(type, "plane") == 0) {
-                objs[objsSize - 1].type = TYPE_PLANE;
+                obj->type = TYPE_PLANE;
             }
             else if(strcmp(type, "sphere") == 0) {
-                objs[objsSize - 1].type = TYPE_SPHERE;
+                obj->type = TYPE_SPHERE;
             }
-            else if(strcmp(type, "light") == 0) {
-                objs[objsSize - 1].type = TYPE_LIGHT;
+
+            jsonObj.objs[objsSize++] = obj;
+        }
+        else if(strcmp(type, "light") != 0) {
+            if((light = malloc(sizeof(*light))) == NULL) {
+                fprintf(stderr, "Error: Line %zu: Memory reallocation error\n",
+                    line);
+                perror("");
+                exit(EXIT_FAILURE);
             }
+
+            memset(obj, 0, sizeof(*light));
+
+            jsonObj.lights[lightsSize++] = light;
         }
         else if(strcmp(type, "camera") != 0) {
             fprintf(stderr, "Error: Line %zu: Unknown type %s", line,
@@ -161,8 +173,8 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= CAMERA_WIDTH_FLAG;
 
-                    camera.width = nextNumber(json, &line);
-                    if(camera.width < 0) {
+                    jsonObj.camera.width = nextNumber(json, &line);
+                    if(jsonObj.camera.width < 0) {
                         fprintf(stderr, "Error: Line %zu: Width cannot be negative\n",
                             line);
                         exit(EXIT_FAILURE);
@@ -176,8 +188,8 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= CAMERA_HEIGHT_FLAG;
 
-                    camera.height = nextNumber(json, &line);
-                    if(camera.height < 0) {
+                    jsonObj.camera.height = nextNumber(json, &line);
+                    if(jsonObj.camera.height < 0) {
                         fprintf(stderr, "Error: Line %zu: Height cannot be negative\n",
                             line);
                         exit(EXIT_FAILURE);
@@ -198,7 +210,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= SPHERE_POS_FLAG;
 
-                    objs[objsSize - 1].sphere.pos = nextVector3d(json, &line);
+                    obj->sphere.pos = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "radius") == 0) {
                     if(keyFlag & SPHERE_RAD_FLAG) {
@@ -207,8 +219,8 @@ jsonObj readScene(const char* path) {
                         exit(EXIT_FAILURE);
                     }
 
-                    objs[objsSize - 1].sphere.radius = nextNumber(json, &line);
-                    if(objs[objsSize - 1].sphere.radius < 0) {
+                    obj->sphere.radius = nextNumber(json, &line);
+                    if(obj->sphere.radius < 0) {
                         fprintf(stderr, "Error: Line %zu: Radius cannot be "
                             "negative\n", line);
                         exit(EXIT_FAILURE);
@@ -223,7 +235,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= SPHERE_DIFFUSE_FLAG;
 
-                    objs[objsSize - 1].sphere.diffuse = nextColor(json, &line);
+                    obj->sphere.diffuse = nextColor(json, &line);
                 }
                 else if(strcmp(key, "specular_color") == 0) {
                     if(keyFlag & SPHERE_SPECULAR_FLAG) {
@@ -233,7 +245,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= SPHERE_SPECULAR_FLAG;
 
-                    objs[objsSize - 1].sphere.specular = nextColor(json, &line);
+                    obj->sphere.specular = nextColor(json, &line);
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -250,7 +262,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= PLANE_POS_FLAG;
 
-                    objs[objsSize - 1].plane.pos = nextVector3d(json, &line);
+                    obj->plane.pos = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "normal") == 0) {
                     if(keyFlag & PLANE_NORMAL_FLAG) {
@@ -260,7 +272,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= PLANE_NORMAL_FLAG;
 
-                    objs[objsSize - 1].plane.normal = nextVector3d(json, &line);
+                    obj->plane.normal = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "diffuse_color") == 0) {
                     if(keyFlag & PLANE_DIFFUSE_FLAG) {
@@ -270,7 +282,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= PLANE_DIFFUSE_FLAG;
 
-                    objs[objsSize - 1].plane.diffuse = nextColor(json, &line);
+                    obj->plane.diffuse = nextColor(json, &line);
                 }
                 else if(strcmp(key, "specular_color") == 0) {
                     if(keyFlag & PLANE_SPECULAR_FLAG) {
@@ -280,7 +292,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= PLANE_SPECULAR_FLAG;
 
-                    objs[objsSize - 1].plane.specular = nextColor(json, &line);
+                    obj->plane.specular = nextColor(json, &line);
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -297,7 +309,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= LIGHT_POS_FLAG;
 
-                    objs[objsSize - 1].light.pos = nextVector3d(json, &line);
+                    light->pos = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "direction") == 0) {
                     if(keyFlag & LIGHT_DIR_FLAG) {
@@ -307,7 +319,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= LIGHT_DIR_FLAG;
 
-                    objs[objsSize - 1].light.dir = nextVector3d(json, &line);
+                    light->dir = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "color") == 0) {
                     if(keyFlag & LIGHT_COLOR_FLAG) {
@@ -317,7 +329,7 @@ jsonObj readScene(const char* path) {
                     }
                     keyFlag |= LIGHT_COLOR_FLAG;
 
-                    objs[objsSize - 1].light.color = nextColor(json, &line);
+                    light->color = nextColor(json, &line);
                 }
             }
 
@@ -404,9 +416,10 @@ jsonObj readScene(const char* path) {
 
     trailSpaceCheck(json, &line);
 
-    jsonObj.camera = camera;
-    jsonObj.objs = objs;
-    jsonObj.objsSize = objsSize;
+    jsonObj.objs = realloc(jsonObj.objs, (objsSize + 1) * sizeof(*(jsonObj.objs)));
+    jsonObj.objs[objsSize] = NULL;
+    jsonObj.lights = realloc(jsonObj.lights, (lightsSize + 1) * sizeof(*(jsonObj.lights)));
+    jsonObj.lights[lightsSize] = NULL;
 
     return jsonObj;
 }

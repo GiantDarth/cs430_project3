@@ -13,16 +13,16 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
     jsonObj jsonObj = readScene(argv[3]);
-    if(jsonObj.objsSize == 0) {
+    if(*(jsonObj.objs) == NULL) {
         return 0;
     }
 
     vector3d zeroVector = { 0 };
 
-    for(size_t i = 0; i < jsonObj.objsSize; i++) {
-        if(jsonObj.objs[i].type == TYPE_PLANE) {
-            if(vector3d_compare(jsonObj.objs[i].plane.normal, zeroVector) != 0) {
-                jsonObj.objs[i].plane.normal = vector3d_normalize(jsonObj.objs[i].plane.normal);
+    for(size_t i = 0; jsonObj.objs[i] != NULL; i++) {
+        if(jsonObj.objs[i]->type == TYPE_PLANE) {
+            if(vector3d_compare(jsonObj.objs[i]->plane.normal, zeroVector) != 0) {
+                jsonObj.objs[i]->plane.normal = vector3d_normalize(jsonObj.objs[i]->plane.normal);
             }
         }
     }
@@ -51,7 +51,7 @@ int main(int argc, char const *argv[]) {
         return 1;
     }
 
-    raycast(pixels, width, height, jsonObj.camera, jsonObj.objs, jsonObj.objsSize);
+    raycast(pixels, width, height, jsonObj.camera, jsonObj.objs, jsonObj.lights);
 
     FILE* outputFd;
     if((outputFd = fopen(argv[4], "w")) == NULL) {

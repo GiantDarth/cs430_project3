@@ -8,8 +8,8 @@
 
 typedef struct jsonObj {
     camera camera;
-    sceneObj* objs;
-    size_t objsSize;
+    sceneObj** objs;
+    sceneLight** lights;
 } jsonObj;
 
 jsonObj readScene(const char* path);

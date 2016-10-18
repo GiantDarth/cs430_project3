@@ -5,21 +5,26 @@
 
 #include "raycast.h"
 
-double sphere_intersection(ray ray, sceneObj obj);
-double plane_intersection(ray ray, sceneObj obj);
-double cylinder_intersection(ray ray, sceneObj obj);
+typedef struct shootValue {
+    double t;
+    sceneObj* obj;
+} shootValue;
 
-const sceneObj* shoot(ray ray, const sceneObj* objs, size_t objsSize);
-pixel shade(sceneObj intersected);
+double sphere_intersection(ray ray, sceneObj* obj);
+double plane_intersection(ray ray, sceneObj* obj);
+double cylinder_intersection(ray ray, sceneObj* obj);
+
+shootValue shoot(ray ray, sceneObj** objs);
+pixel shade(sceneObj* intersected, double t);
 
 void raycast(pixel* pixels, size_t width, size_t height, camera camera,
-        const sceneObj* objs, size_t objsSize) {
+        sceneObj** objs, sceneLight** lights) {
     const vector3d center = { 0, 0, 1 };
     const double PIXEL_WIDTH = camera.width / width;
     const double PIXEL_HEIGHT = camera.height / height;
 
     vector3d point;
-    const sceneObj* intersected;
+    shootValue intersected;
     // Initialize ray as origin and dir of { 0, 0, 0 }
     ray ray = { 0 };
     point.z = center.z;
@@ -34,21 +39,23 @@ void raycast(pixel* pixels, size_t width, size_t height, camera camera,
         for(size_t x = 0; x < width; x++) {
             point.x = center.x - (camera.width / 2) + PIXEL_WIDTH * (x + 0.5);
             ray.dir = vector3d_normalize(point);
-            intersected = shoot(ray, objs, objsSize);
-            if(intersected != NULL) {
-                pixels[y * width + x] = shade(*intersected);
+            intersected = shoot(ray, objs);
+            if(intersected.obj != NULL) {
+                pixels[y * width + x] = shade(intersected.obj, intersected.t);
             }
         }
     }
 }
 
-const sceneObj* shoot(ray ray, const sceneObj* objs, size_t objsSize) {
+shootValue shoot(ray ray, sceneObj** objs) {
     double closest = INFINITY;
-    const sceneObj* closestObj = NULL;
+    sceneObj* closestObj = NULL;
     double t;
 
-    for(size_t i = 0; i < objsSize; i++) {
-        switch(objs[i].type) {
+    shootValue shootValue = { 0 };
+
+    for(size_t i = 0; objs[i] != NULL; i++) {
+        switch(objs[i]->type) {
             case(TYPE_SPHERE):
                 t = sphere_intersection(ray, objs[i]);
                 break;
@@ -61,34 +68,37 @@ const sceneObj* shoot(ray ray, const sceneObj* objs, size_t objsSize) {
         }
         if(t > 0 && t < closest) {
             closest = t;
-            closestObj = &(objs[i]);
+            closestObj = objs[i];
         }
     }
 
-    return closestObj;
+    shootValue.t = closest;
+    shootValue.obj = closestObj;
+
+    return shootValue;
 }
 
-pixel shade(sceneObj intersected) {
+pixel shade(sceneObj* intersected, double t) {
     pixel color = { 0 };
-    if(intersected.type == TYPE_SPHERE) {
-        return intersected.sphere.diffuse;
+    if(intersected->type == TYPE_SPHERE) {
+        return intersected->sphere.diffuse;
     }
-    else if(intersected.type == TYPE_PLANE) {
-        return intersected.plane.diffuse;
+    else if(intersected->type == TYPE_PLANE) {
+        return intersected->plane.diffuse;
     }
     else {
         return color;
     }
 }
 
-double plane_intersection(ray ray, sceneObj obj) {
-    double denominator = vector3d_dot(obj.plane.normal, ray.dir);
+double plane_intersection(ray ray, sceneObj* obj) {
+    double denominator = vector3d_dot(obj->plane.normal, ray.dir);
     // If the denominator is 0, then ray is parallel to plane
     if(denominator == 0) {
         return -1;
     }
-    double t = - vector3d_dot(obj.plane.normal,
-        vector3d_sub(ray.origin, obj.plane.pos)) / denominator;
+    double t = - vector3d_dot(obj->plane.normal,
+        vector3d_sub(ray.origin, obj->plane.pos)) / denominator;
 
     if(t > 0) {
         return t;
@@ -97,20 +107,20 @@ double plane_intersection(ray ray, sceneObj obj) {
     return -1;
 }
 
-double sphere_intersection(ray ray, sceneObj obj) {
+double sphere_intersection(ray ray, sceneObj* obj) {
     // t_close = Rd * (C - Ro) closest apprach along ray
     // x_close = Ro + t_close*Rd closest point from circle center
     // d = ||x_close - C|| distance from circle center
     // a = sqrt(rad^2 - d^2)
     // t = t_close - a
-    double t = vector3d_dot(ray.dir, vector3d_sub(obj.sphere.pos, ray.origin));
+    double t = vector3d_dot(ray.dir, vector3d_sub(obj->sphere.pos, ray.origin));
     vector3d point = vector3d_add(ray.origin, vector3d_scale(ray.dir, t));
-    double magnitude = vector3d_magnitude(vector3d_sub(point, obj.sphere.pos));
-    if(magnitude > obj.sphere.radius) {
+    double magnitude = vector3d_magnitude(vector3d_sub(point, obj->sphere.pos));
+    if(magnitude > obj->sphere.radius) {
         return -1;
     }
-    else if(magnitude < obj.sphere.radius) {
-        double a = sqrt(pow(obj.sphere.radius, 2) - pow(magnitude, 2));
+    else if(magnitude < obj->sphere.radius) {
+        double a = sqrt(pow(obj->sphere.radius, 2) - pow(magnitude, 2));
 
         return t - a;
     }
@@ -119,7 +129,7 @@ double sphere_intersection(ray ray, sceneObj obj) {
     }
 }
 
-double cylinder_intersection(ray ray, sceneObj obj) {
+double cylinder_intersection(ray ray, sceneObj* obj) {
     // Step 1. Find the equation for the object you are innterested in
     // x^2 + y^2 = r^2
     //
@@ -157,15 +167,15 @@ double cylinder_intersection(ray ray, sceneObj obj) {
     double a = pow(ray.dir.x, 2) + pow(ray.dir.x, 2);
     double b = 2 * (
         ray.origin.x * ray.dir.x -
-        ray.dir.z * obj.cylinder.pos.x +
+        ray.dir.z * obj->cylinder.pos.x +
         ray.origin.z * ray.dir.z -
-        ray.dir.z * obj.cylinder.pos.z
+        ray.dir.z * obj->cylinder.pos.z
     );
     double c = pow(ray.origin.z, 2) -
-        2 * ray.origin.x * obj.cylinder.pos.x +
-        pow(obj.cylinder.pos.x, 2) + pow(ray.origin.z, 2) -
-        2 * ray.origin.z * obj.cylinder.pos.z +
-        pow(obj.cylinder.pos.z, 2);
+        2 * ray.origin.x * obj->cylinder.pos.x +
+        pow(obj->cylinder.pos.x, 2) + pow(ray.origin.z, 2) -
+        2 * ray.origin.z * obj->cylinder.pos.z +
+        pow(obj->cylinder.pos.z, 2);
 
     double determinant = pow(b, 2) - 4 * a *c;
     if (determinant < 0) {
