@@ -21,10 +21,10 @@ shootObj shoot(ray ray, sceneObj** objs);
 pixel shade(ray ray, vector3d intersection, sceneObj* intersected, sceneObj** objs,
     sceneLight** lights);
 
-vector3d getIntersection(vector3d origin, vector3d dir, double t);
+vector3d getIntersection(ray ray, double t);
 vector3d getNormal(vector3d intersection, sceneObj* obj);
 vector3d getColor(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light);
-int inShadow(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light);
+int inShadow(vector3d intersection, sceneLight* light, sceneObj** objs);
 double getRadialAtten(vector3d intersection, sceneLight* light);
 double getAngularAtten(vector3d intersection, sceneLight* light);
 vector3d getDiffuse(vector3d intersection, sceneObj* closest, sceneLight* light);
@@ -54,7 +54,7 @@ void raycast(pixel* pixels, size_t width, size_t height, camera camera,
             ray.dir = vector3d_normalize(point);
             closest = shoot(ray, objs);
             if(closest.obj != NULL) {
-                vector3d intersection = getIntersection(ray.origin, ray.dir, closest.t);
+                vector3d intersection = getIntersection(ray, closest.t);
                 pixels[y * width + x] = shade(ray, intersection, closest.obj,
                     objs, lights);
             }
@@ -93,7 +93,7 @@ pixel shade(ray ray, vector3d intersection, sceneObj* closest, sceneObj** objs,
         sceneLight** lights) {
     vector3d sum = { 0 };
     for(size_t i = 0; lights[i] != NULL; i++) {
-        if(!inShadow(ray, intersection, closest, objs)) {
+        if(!inShadow(intersection, lights[i], objs)) {
             sum = vector3d_add(sum,
                 getColor(ray, intersection, closest, lights[i]));
         }
@@ -105,8 +105,8 @@ pixel shade(ray ray, vector3d intersection, sceneObj* closest, sceneObj** objs,
     return pixel;
 }
 
-vector3d getIntersection(vector3d origin, vector3d dir, double t) {
-    return vector3d_add(origin, vector3d_scale(dir, t));
+vector3d getIntersection(ray ray, double t) {
+    return vector3d_add(ray.origin, vector3d_scale(ray.dir, t));
 }
 
 vector3d getNormal(vector3d intersection, sceneObj* obj) {
@@ -134,8 +134,27 @@ vector3d getColor(ray ray, vector3d intersection, sceneObj* closest, sceneLight*
     return sum;
 }
 
-int inShadow(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light) {
-    // TODO
+int inShadow(vector3d intersection, sceneLight* light, sceneObj** objs) {
+    vector3d dir = vector3d_normalize(vector3d_sub(light->pos, intersection));
+    double distance = vector3d_distance(light->pos, intersection);
+    ray ray = { intersection, dir };
+    double t;
+    for(size_t i = 0; objs[i] != NULL; i++) {
+        switch(objs[i]->type) {
+            case(TYPE_SPHERE):
+                t = sphere_intersection(ray, objs[i]);
+                break;
+            case(TYPE_PLANE):
+                t = plane_intersection(ray, objs[i]);
+                break;
+            default:
+                fprintf(stderr, "Error: Invalid obj type\n");
+                exit(EXIT_FAILURE);
+        }
+        if(t > 0 && t < distance) {
+            return 1;
+        }
+    }
     return 0;
 }
 
@@ -186,10 +205,14 @@ vector3d getDiffuse(vector3d intersection, sceneObj* closest, sceneLight* light)
 }
 
 vector3d getSpecular(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light) {
+    vector3d dir = vector3d_normalize(vector3d_sub(light->pos, intersection));
     vector3d normal = getNormal(intersection, closest);
     vector3d v = vector3d_scale(ray.dir, -1);
-    double cosAlpha = vector3d_dot(normal, light->dir);
-    vector3d r = vector3d_sub(vector3d_scale(normal, 2 * cosAlpha), light->dir);
+    double cosAlpha = vector3d_dot(normal, dir);
+    vector3d r = vector3d_sub(
+        vector3d_scale(normal, vector3d_dot(vector3d_scale(normal, 2), dir)),
+        dir
+    );
     double cosBeta = vector3d_dot(v, r);
 
     if(cosBeta > 0 && cosAlpha > 0) {
@@ -226,7 +249,7 @@ double sphere_intersection(ray ray, sceneObj* obj) {
     // a = sqrt(rad^2 - d^2)
     // t = t_close - a
     double t = vector3d_dot(ray.dir, vector3d_sub(obj->sphere.pos, ray.origin));
-    vector3d point = vector3d_add(ray.origin, vector3d_scale(ray.dir, t));
+    vector3d point = getIntersection(ray, t);
     double magnitude = vector3d_magnitude(vector3d_sub(point, obj->sphere.pos));
     if(magnitude > obj->sphere.radius) {
         return -1;
