@@ -12,6 +12,19 @@
         "radius": 2
     },
     {
+        "type": "sphere",
+        "diffuse_color": [0, 1, 1],
+        "specular_color": [1, 1, 1],
+        "position": [0, 0, 2],
+        "radius": 0.5
+    },
+    {
+        "type": "sphere",
+        "diffuse_color": [1, 0, 1],
+        "position": [1, 0, 2],
+        "radius": 0.5
+    },
+    {
         "type": "plane",
         "diffuse_color": [0, 1, 0],
         "position": [0, -1, 0],
