@@ -27,6 +27,12 @@ int main(int argc, char const *argv[]) {
         }
     }
 
+    for(size_t i = 0; jsonObj.lights[i] != NULL; i++) {
+        if(vector3d_compare(jsonObj.lights[i]->dir, zeroVector) != 0) {
+            jsonObj.lights[i]->dir = vector3d_normalize(jsonObj.lights[i]->dir);
+        }
+    }
+
     char* endptr;
     size_t width = strtoul(argv[1], &endptr, 10);
     // If the first character is not empty and the set first invalid
