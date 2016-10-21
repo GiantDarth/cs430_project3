@@ -81,6 +81,7 @@ shootObj shoot(ray ray, sceneObj** objs) {
                 exit(EXIT_FAILURE);
         }
         if(t > 0 && t < closestValue) {
+            closestValue = t;
             closest.t = t;
             closest.obj = objs[i];
         }
