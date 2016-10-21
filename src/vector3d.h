@@ -28,6 +28,16 @@ static inline double vector3d_dot(vector3d first, vector3d second) {
     return first.x * second.x + first.y * second.y + first.z * second.z;
 }
 
+static inline vector3d vector3d_product(vector3d first, vector3d second) {
+    vector3d result = {
+        first.x * second.x,
+        first.y * second.y,
+        first.z * second.z
+    };
+
+    return result;
+}
+
 static inline vector3d vector3d_cross(vector3d first, vector3d second) {
     vector3d result = {
         first.y * second.z - first.z * second.y,
@@ -39,6 +49,12 @@ static inline vector3d vector3d_cross(vector3d first, vector3d second) {
 
 static inline double vector3d_magnitude(vector3d vector) {
     return sqrt(pow(vector.x, 2) + pow(vector.y, 2) + pow(vector.z, 2));
+}
+
+static inline vector3d vector3d_zero() {
+    vector3d zeroVector = { 0 };
+
+    return zeroVector;
 }
 
 static inline int vector3d_compare(vector3d first, vector3d second) {
@@ -64,6 +80,11 @@ static inline vector3d vector3d_normalize(vector3d vector) {
     };
 
     return normal;
+}
+
+static inline double vector3d_distance(vector3d first, vector3d second) {
+    return sqrt(pow(first.x - second.x, 2) + pow(first.y - second.y, 2) +
+        pow(first.z - second.z, 2));
 }
 
 #endif // CS430_VECTOR3D_H
