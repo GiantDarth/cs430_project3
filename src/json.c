@@ -355,6 +355,11 @@ jsonObj readScene(const char* path) {
                     keyFlag |= LIGHT_THETA_FLAG;
 
                     light->theta = nextNumber(json, &line);
+                    if(light->theta < 0) {
+                        fprintf(stderr, "Error: Line %zu: 'theta' cannot be negative\n",
+                            line);
+                            exit(EXIT_FAILURE);
+                    }
                 }
                 else if(strcmp(key, "radial-a0") == 0) {
                     if(keyFlag & LIGHT_RAD_A0_FLAG) {
@@ -365,6 +370,11 @@ jsonObj readScene(const char* path) {
                     keyFlag |= LIGHT_RAD_A0_FLAG;
 
                     light->radialAtten[0] = nextNumber(json, &line);
+                    if(light->radialAtten[0] < 0) {
+                        fprintf(stderr, "Error: Line %zu: 'radial-a0' cannot be negative\n",
+                            line);
+                            exit(EXIT_FAILURE);
+                    }
                 }
                 else if(strcmp(key, "radial-a1") == 0) {
                     if(keyFlag & LIGHT_RAD_A1_FLAG) {
@@ -375,6 +385,11 @@ jsonObj readScene(const char* path) {
                     keyFlag |= LIGHT_RAD_A1_FLAG;
 
                     light->radialAtten[1] = nextNumber(json, &line);
+                    if(light->radialAtten[1] < 0) {
+                        fprintf(stderr, "Error: Line %zu: 'radial-a1' cannot be negative\n",
+                            line);
+                            exit(EXIT_FAILURE);
+                    }
                 }
                 else if(strcmp(key, "radial-a2") == 0) {
                     if(keyFlag & LIGHT_RAD_A2_FLAG) {
@@ -385,6 +400,11 @@ jsonObj readScene(const char* path) {
                     keyFlag |= LIGHT_RAD_A2_FLAG;
 
                     light->radialAtten[2] = nextNumber(json, &line);
+                    if(light->radialAtten[2] < 0) {
+                        fprintf(stderr, "Error: Line %zu: 'radial-a2' cannot be negative\n",
+                            line);
+                            exit(EXIT_FAILURE);
+                    }
                 }
                 else if(strcmp(key, "angular-a0") == 0) {
                     if(keyFlag & LIGHT_ANG_A0_FLAG) {
@@ -395,6 +415,11 @@ jsonObj readScene(const char* path) {
                     keyFlag |= LIGHT_ANG_A0_FLAG;
 
                     light->angularAtten = nextNumber(json, &line);
+                    if(light->angularAtten < 0) {
+                        fprintf(stderr, "Error: Line %zu: 'angular-a0' cannot be negative\n",
+                            line);
+                            exit(EXIT_FAILURE);
+                    }
                 }
             }
 
