@@ -139,7 +139,8 @@ jsonObj readScene(const char* path) {
             obj->specular.z = 1;
             obj->specular.y = 1;
 
-            jsonObj.objs = realloc(jsonObj.objs, objsSize++ * sizeof(*(jsonObj.objs)));
+            jsonObj.objs = realloc(jsonObj.objs, ++objsSize *
+                sizeof(*(jsonObj.objs)));
             jsonObj.objs[objsSize - 1] = obj;
         }
         else if(strcmp(type, "light") != 0) {
@@ -154,7 +155,7 @@ jsonObj readScene(const char* path) {
 
             light->radialAtten[2] = 1;
 
-            jsonObj.lights = realloc(jsonObj.lights, lightsSize++ *
+            jsonObj.lights = realloc(jsonObj.lights, ++lightsSize *
                 sizeof(*(jsonObj.lights)));
             jsonObj.lights[lightsSize - 1] = light;
         }
