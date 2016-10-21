@@ -12,25 +12,21 @@
 
 typedef struct sceneObj {
     int type;
+    vector3d diffuse;
+    vector3d specular;
     union {
         struct {
             vector3d pos;
             double radius;
-            pixel diffuse;
-            pixel specular;
         } sphere;
         struct {
             vector3d pos;
             vector3d normal;
-            pixel diffuse;
-            pixel specular;
         } plane;
         struct {
             vector3d pos;
             double radius;
             double height;
-            pixel diffuse;
-            pixel specular;
         } cylinder;
     };
 } sceneObj;

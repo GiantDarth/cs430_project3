@@ -13,15 +13,15 @@
 #define CAMERA_WIDTH_FLAG 0x1
 #define CAMERA_HEIGHT_FLAG 0x2
 
-#define SPHERE_POS_FLAG 0x1
-#define SPHERE_RAD_FLAG 0x2
-#define SPHERE_DIFFUSE_FLAG 0x4
-#define SPHERE_SPECULAR_FLAG 0x8
+#define DIFFUSE_FLAG 0x1
+#define SPECULAR_FLAG 0x2
+#define NS_FLAG 0x4
 
-#define PLANE_POS_FLAG 0x1
-#define PLANE_NORMAL_FLAG 0x2
-#define PLANE_DIFFUSE_FLAG 0x4
-#define PLANE_SPECULAR_FLAG 0x8
+#define SPHERE_POS_FLAG 0x8
+#define SPHERE_RAD_FLAG 0x10
+
+#define PLANE_POS_FLAG 0x8
+#define PLANE_NORMAL_FLAG 0x10
 
 #define LIGHT_POS_FLAG 0x1
 #define LIGHT_DIR_FLAG 0x2
@@ -228,24 +228,24 @@ jsonObj readScene(const char* path) {
                     keyFlag |= SPHERE_RAD_FLAG;
                 }
                 else if(strcmp(key, "diffuse_color") == 0) {
-                    if(keyFlag & SPHERE_DIFFUSE_FLAG) {
+                    if(keyFlag & DIFFUSE_FLAG) {
                         fprintf(stderr, "Error: Line %zu: 'diffuse_color' already defined\n",
                             line);
                         exit(EXIT_FAILURE);
                     }
-                    keyFlag |= SPHERE_DIFFUSE_FLAG;
+                    keyFlag |= DIFFUSE_FLAG;
 
-                    obj->sphere.diffuse = nextColor(json, &line);
+                    obj->diffuse = nextColor(json, &line);
                 }
                 else if(strcmp(key, "specular_color") == 0) {
-                    if(keyFlag & SPHERE_SPECULAR_FLAG) {
+                    if(keyFlag & SPECULAR_FLAG) {
                         fprintf(stderr, "Error: Line %zu: 'specular_color' already defined\n",
                             line);
                         exit(EXIT_FAILURE);
                     }
-                    keyFlag |= SPHERE_SPECULAR_FLAG;
+                    keyFlag |= SPECULAR_FLAG;
 
-                    obj->sphere.specular = nextColor(json, &line);
+                    obj->specular = nextColor(json, &line);
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -275,24 +275,24 @@ jsonObj readScene(const char* path) {
                     obj->plane.normal = nextVector3d(json, &line);
                 }
                 else if(strcmp(key, "diffuse_color") == 0) {
-                    if(keyFlag & PLANE_DIFFUSE_FLAG) {
+                    if(keyFlag & DIFFUSE_FLAG) {
                         fprintf(stderr, "Error: Line %zu: 'diffuse_color' already defined\n",
                             line);
                         exit(EXIT_FAILURE);
                     }
-                    keyFlag |= PLANE_DIFFUSE_FLAG;
+                    keyFlag |= DIFFUSE_FLAG;
 
-                    obj->plane.diffuse = nextColor(json, &line);
+                    obj->diffuse = nextColor(json, &line);
                 }
                 else if(strcmp(key, "specular_color") == 0) {
-                    if(keyFlag & PLANE_SPECULAR_FLAG) {
+                    if(keyFlag & SPECULAR_FLAG) {
                         fprintf(stderr, "Error: Line %zu: 'specular_color' already defined\n",
                             line);
                         exit(EXIT_FAILURE);
                     }
-                    keyFlag |= PLANE_SPECULAR_FLAG;
+                    keyFlag |= SPECULAR_FLAG;
 
-                    obj->plane.specular = nextColor(json, &line);
+                    obj->specular = nextColor(json, &line);
                 }
                 else {
                     fprintf(stderr, "Error: Line %zu: Key '%s' not supported "
@@ -360,13 +360,8 @@ jsonObj readScene(const char* path) {
                     "property missing\n", line);
                 exit(EXIT_FAILURE);
             }
-            if(!(keyFlag & SPHERE_DIFFUSE_FLAG)) {
+            if(!(keyFlag & DIFFUSE_FLAG)) {
                 fprintf(stderr, "Error: Line %zu: 'sphere' missing 'diffuse_color' "
-                    "property missing\n", line);
-                exit(EXIT_FAILURE);
-            }
-            if(!(keyFlag & SPHERE_SPECULAR_FLAG)) {
-                fprintf(stderr, "Error: Line %zu: 'sphere' missing 'specular_color' "
                     "property missing\n", line);
                 exit(EXIT_FAILURE);
             }
@@ -382,13 +377,8 @@ jsonObj readScene(const char* path) {
                     "property missing\n", line);
                 exit(EXIT_FAILURE);
             }
-            if(!(keyFlag & SPHERE_DIFFUSE_FLAG)) {
+            if(!(keyFlag & DIFFUSE_FLAG)) {
                 fprintf(stderr, "Error: Line %zu: 'plane' missing 'diffuse_color' "
-                    "property missing\n", line);
-                exit(EXIT_FAILURE);
-            }
-            if(!(keyFlag & SPHERE_SPECULAR_FLAG)) {
-                fprintf(stderr, "Error: Line %zu: 'plane' missing 'specular_color' "
                     "property missing\n", line);
                 exit(EXIT_FAILURE);
             }
