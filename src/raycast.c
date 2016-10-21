@@ -3,6 +3,9 @@
 #include <math.h>
 #include <string.h>
 
+#define PI 3.14159265358979323846
+
+#include "vector3d.h"
 #include "raycast.h"
 
 typedef struct shootObj {
@@ -15,7 +18,17 @@ double plane_intersection(ray ray, sceneObj* obj);
 double cylinder_intersection(ray ray, sceneObj* obj);
 
 shootObj shoot(ray ray, sceneObj** objs);
-pixel shade(double t, sceneObj* intersected, sceneObj** objs, sceneLight** lights);
+pixel shade(ray ray, vector3d intersection, sceneObj* intersected, sceneObj** objs,
+    sceneLight** lights);
+
+vector3d getIntersection(vector3d origin, vector3d dir, double t);
+vector3d getNormal(vector3d intersection, sceneObj* obj);
+vector3d getColor(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light);
+int inShadow(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light);
+double getRadialAtten(vector3d intersection, sceneLight* light);
+double getAngularAtten(vector3d intersection, sceneLight* light);
+vector3d getDiffuse(vector3d intersection, sceneObj* closest, sceneLight* light);
+vector3d getSpecular(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light);
 
 void raycast(pixel* pixels, size_t width, size_t height, camera camera,
         sceneObj** objs, sceneLight** lights) {
@@ -41,7 +54,8 @@ void raycast(pixel* pixels, size_t width, size_t height, camera camera,
             ray.dir = vector3d_normalize(point);
             closest = shoot(ray, objs);
             if(closest.obj != NULL) {
-                pixels[y * width + x] = shade(closest.t, closest.obj,
+                vector3d intersection = getIntersection(ray.origin, ray.dir, closest.t);
+                pixels[y * width + x] = shade(ray, intersection, closest.obj,
                     objs, lights);
             }
         }
@@ -75,16 +89,117 @@ shootObj shoot(ray ray, sceneObj** objs) {
     return closest;
 }
 
-pixel shade(double t, sceneObj* closest, sceneObj** objs, sceneLight** lights) {
-    pixel color = { 0 };
-    if(closest->type == TYPE_SPHERE) {
-        return closest->sphere.diffuse;
+pixel shade(ray ray, vector3d intersection, sceneObj* closest, sceneObj** objs,
+        sceneLight** lights) {
+    vector3d sum = { 0 };
+    for(size_t i = 0; lights[i] != NULL; i++) {
+        if(!inShadow(ray, intersection, closest, objs)) {
+            sum = vector3d_add(sum,
+                getColor(ray, intersection, closest, lights[i]));
+        }
     }
-    else if(closest->type == TYPE_PLANE) {
-        return closest->plane.diffuse;
+
+    pixel_clamp(&sum);
+    pixel pixel = vector3d2pixel(sum);
+
+    return pixel;
+}
+
+vector3d getIntersection(vector3d origin, vector3d dir, double t) {
+    return vector3d_add(origin, vector3d_scale(dir, t));
+}
+
+vector3d getNormal(vector3d intersection, sceneObj* obj) {
+    switch(obj->type) {
+        case(TYPE_SPHERE):
+            return vector3d_normalize(vector3d_sub(intersection, obj->sphere.pos));
+        case(TYPE_PLANE):
+            return obj->plane.normal;
+        default:
+            fprintf(stderr, "Error: Invalid obj type\n");
+            exit(EXIT_FAILURE);
+    }
+}
+
+vector3d getColor(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light) {
+    double radialAtten = getRadialAtten(intersection, light);
+    double angularAtten = getAngularAtten(intersection, light);
+
+    vector3d sum = vector3d_add(
+        getDiffuse(intersection, closest, light),
+        getSpecular(ray, intersection, closest, light)
+    );
+    sum = vector3d_scale(sum, radialAtten * angularAtten);
+
+    return sum;
+}
+
+int inShadow(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light) {
+    // TODO
+    return 0;
+}
+
+double getRadialAtten(vector3d intersection, sceneLight* light) {
+    double distance = vector3d_distance(light->pos, intersection);
+
+    if(distance == INFINITY) {
+        return 1;
     }
     else {
-        return color;
+        return (1 / (
+            (light->radialAtten[2] * distance * distance) +
+            (light->radialAtten[1] * distance) +
+            light->radialAtten[0]
+        ));
+    }
+}
+
+double getAngularAtten(vector3d intersection, sceneLight* light) {
+    // Not spot light
+    if(light->theta == 0 || light->angularAtten == 0 || (
+            light->pos.x == 0 && light->pos.y == 0 && light->pos.z == 0)) {
+        return 1;
+    }
+
+    vector3d objVector = vector3d_normalize(vector3d_sub(intersection, light->pos));
+    double cosPhi = vector3d_dot(objVector, light->dir);
+    double cosTheta = cos(light->theta * PI / 180.0);
+    if(cosPhi > cosTheta) {
+        return 0;
+    }
+
+    return pow(vector3d_dot(objVector, light->pos), light->angularAtten);
+}
+
+vector3d getDiffuse(vector3d intersection, sceneObj* closest, sceneLight* light) {
+    vector3d dir = vector3d_normalize(vector3d_sub(light->pos, intersection));
+    vector3d normal = getNormal(intersection, closest);
+    double cosAlpha = vector3d_dot(normal, dir);
+
+    if(cosAlpha > 0) {
+        return vector3d_scale(vector3d_product(closest->diffuse, light->color),
+            cosAlpha);
+    }
+    else {
+        return vector3d_zero();
+    }
+}
+
+vector3d getSpecular(ray ray, vector3d intersection, sceneObj* closest, sceneLight* light) {
+    vector3d normal = getNormal(intersection, closest);
+    vector3d v = vector3d_scale(ray.dir, -1);
+    double cosAlpha = vector3d_dot(normal, light->dir);
+    vector3d r = vector3d_sub(vector3d_scale(normal, 2 * cosAlpha), light->dir);
+    double cosBeta = vector3d_dot(v, r);
+
+    if(cosBeta > 0 && cosAlpha > 0) {
+        return vector3d_scale(
+            vector3d_product(closest->specular, light->color),
+            pow(cosBeta, closest->ns)
+        );
+    }
+    else {
+        return vector3d_zero();
     }
 }
 
