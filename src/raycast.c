@@ -132,6 +132,10 @@ vector3d getColor(ray ray, vector3d intersection, sceneObj* closest, sceneLight*
     );
     sum = vector3d_scale(sum, radialAtten * angularAtten);
 
+    sum.x = clamp(sum.x, 0, INFINITY);
+    sum.y = clamp(sum.y, 0, INFINITY);
+    sum.z = clamp(sum.z, 0, INFINITY);
+
     return sum;
 }
 
