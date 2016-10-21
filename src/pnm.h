@@ -44,9 +44,9 @@ static inline void pixel_clamp(pixel* pixel) {
 
 static inline vector3d pixel2Vector3d(pixel pixel) {
     vector3d vector = {
-        pixel.red,
-        pixel.green,
-        pixel.blue
+        pixel.red / 255,
+        pixel.green / 255,
+        pixel.blue / 255
     };
 
     return vector;
@@ -54,9 +54,9 @@ static inline vector3d pixel2Vector3d(pixel pixel) {
 
 static inline pixel vector3d2pixel(vector3d vector) {
     pixel pixel = {
-        vector.x,
-        vector.y,
-        vector.z
+        vector.x * 255,
+        vector.y * 255,
+        vector.z * 255
     };
 
     return pixel;

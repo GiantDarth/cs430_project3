@@ -26,6 +26,11 @@
 #define LIGHT_POS_FLAG 0x1
 #define LIGHT_DIR_FLAG 0x2
 #define LIGHT_COLOR_FLAG 0x4
+#define LIGHT_THETA_FLAG 0x8
+#define LIGHT_RAD_A0_FLAG 0x10
+#define LIGHT_RAD_A1_FLAG 0x20
+#define LIGHT_RAD_A2_FLAG 0x40
+#define LIGHT_ANG_A0_FLAG 0x80
 
 void errorCheck(int c, FILE* json, size_t line);
 void tokenCheck(int c, char token, size_t line);
@@ -35,7 +40,7 @@ void trailSpaceCheck(FILE* json, size_t* line);
 char* nextString(FILE* json, size_t* line);
 double nextNumber(FILE* json, size_t* line);
 vector3d nextVector3d(FILE* json, size_t* line);
-pixel nextColor(FILE* json, size_t* line);
+vector3d nextColor(FILE* json, size_t* line);
 
 jsonObj readScene(const char* path) {
     FILE* json = fopen(path, "r");
@@ -128,6 +133,11 @@ jsonObj readScene(const char* path) {
             else if(strcmp(type, "sphere") == 0) {
                 obj->type = TYPE_SPHERE;
             }
+
+            obj->ns = DEFAULT_NS;
+            obj->specular.x = 1;
+            obj->specular.z = 1;
+            obj->specular.y = 1;
 
             jsonObj.objs = realloc(jsonObj.objs, objsSize++ * sizeof(*(jsonObj.objs)));
             jsonObj.objs[objsSize - 1] = obj;
@@ -335,6 +345,56 @@ jsonObj readScene(const char* path) {
                     keyFlag |= LIGHT_COLOR_FLAG;
 
                     light->color = nextColor(json, &line);
+                }
+                else if(strcmp(key, "theta") == 0) {
+                    if(keyFlag & LIGHT_THETA_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'theta' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= LIGHT_THETA_FLAG;
+
+                    light->theta = nextNumber(json, &line);
+                }
+                else if(strcmp(key, "radial-a0") == 0) {
+                    if(keyFlag & LIGHT_RAD_A0_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'radial-a0' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= LIGHT_RAD_A0_FLAG;
+
+                    light->radialAtten[0] = nextNumber(json, &line);
+                }
+                else if(strcmp(key, "radial-a1") == 0) {
+                    if(keyFlag & LIGHT_RAD_A1_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'radial-a1' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= LIGHT_RAD_A1_FLAG;
+
+                    light->radialAtten[1] = nextNumber(json, &line);
+                }
+                else if(strcmp(key, "radial-a2") == 0) {
+                    if(keyFlag & LIGHT_RAD_A2_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'radial-a2' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= LIGHT_RAD_A2_FLAG;
+
+                    light->radialAtten[2] = nextNumber(json, &line);
+                }
+                else if(strcmp(key, "angular-a0") == 0) {
+                    if(keyFlag & LIGHT_ANG_A0_FLAG) {
+                        fprintf(stderr, "Error: Line %zu: 'angular-a0' already defined\n",
+                            line);
+                        exit(EXIT_FAILURE);
+                    }
+                    keyFlag |= LIGHT_ANG_A0_FLAG;
+
+                    light->angularAtten = nextNumber(json, &line);
                 }
             }
 
@@ -582,52 +642,14 @@ vector3d nextVector3d(FILE* json, size_t* line) {
     return vector;
 }
 
-pixel nextColor(FILE* json, size_t* line) {
-    double color;
-    pixel pixel;
+vector3d nextColor(FILE* json, size_t* line) {
+    vector3d color = nextVector3d(json, line);
 
-    int c = jsonGetC(json, line);
-    tokenCheck(c, '[', *line);
-
-    skipWhitespace(json, line);
-    color = nextNumber(json, line);
-    if(color < 0 || color > 1.0) {
-        fprintf(stderr, "Error: Line %zu: Color must be between 0.0 and 1.0\n",
+    if(color.x < 0 || color.y < 0 || color.z < 0) {
+        fprintf(stderr, "Error: Line %zu: Color must be at least 0.0.\n",
             *line);
         exit(EXIT_FAILURE);
     }
-    pixel.red = color * 255;
 
-    skipWhitespace(json, line);
-    c = jsonGetC(json, line);
-    tokenCheck(c, ',', *line);
-
-    skipWhitespace(json, line);
-    color = nextNumber(json, line);
-    if(color < 0 || color > 1.0) {
-        fprintf(stderr, "Error: Line %zu: Color must be between 0.0 and 1.0\n",
-            *line);
-        exit(EXIT_FAILURE);
-    }
-    pixel.green = color * 255;
-
-
-    skipWhitespace(json, line);
-    c = jsonGetC(json, line);
-    tokenCheck(c, ',', *line);
-
-    skipWhitespace(json, line);
-    color = nextNumber(json, line);
-    if(color < 0 || color > 1.0) {
-        fprintf(stderr, "Error: Line %zu: Color must be between 0.0 and 1.0\n",
-            *line);
-        exit(EXIT_FAILURE);
-    }
-    pixel.blue = color * 255;
-
-    skipWhitespace(json, line);
-    c = jsonGetC(json, line);
-    tokenCheck(c, ']', *line);
-
-    return pixel;
+    return color;
 }

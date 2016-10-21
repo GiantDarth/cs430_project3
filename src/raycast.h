@@ -8,12 +8,14 @@
 
 #define TYPE_SPHERE 0
 #define TYPE_PLANE 1
-#define TYPE_LIGHT 2
+
+#define DEFAULT_NS 20
 
 typedef struct sceneObj {
     int type;
     vector3d diffuse;
     vector3d specular;
+    double ns;
     union {
         struct {
             vector3d pos;
@@ -34,9 +36,10 @@ typedef struct sceneObj {
 typedef struct sceneLight {
     vector3d pos;
     vector3d dir;
-    pixel color;
+    double theta;
+    vector3d color;
     double radialAtten[3];
-    double angularAtten[3];
+    double angularAtten;
 } sceneLight;
 
 typedef struct camera {
