@@ -34,12 +34,15 @@ static inline double clamp(double value, double min, double max) {
     else if(value > max) {
         return max;
     }
+    else {
+        return value;
+    }
 }
 
-static inline void pixel_clamp(pixel* pixel) {
-    pixel->red = clamp(pixel->red, 0, 1);
-    pixel->green = clamp(pixel->green, 0, 1);
-    pixel->blue = clamp(pixel->blue, 0, 1);
+static inline void pixel_clamp(vector3d* pixel) {
+    pixel->x = clamp(pixel->x, 0, 1);
+    pixel->y = clamp(pixel->y, 0, 1);
+    pixel->z = clamp(pixel->z, 0, 1);
 }
 
 static inline vector3d pixel2Vector3d(pixel pixel) {
