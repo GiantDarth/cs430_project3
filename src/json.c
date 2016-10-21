@@ -129,7 +129,8 @@ jsonObj readScene(const char* path) {
                 obj->type = TYPE_SPHERE;
             }
 
-            jsonObj.objs[objsSize++] = obj;
+            jsonObj.objs = realloc(jsonObj.objs, objsSize++ * sizeof(*(jsonObj.objs)));
+            jsonObj.objs[objsSize - 1] = obj;
         }
         else if(strcmp(type, "light") != 0) {
             if((light = malloc(sizeof(*light))) == NULL) {
@@ -139,9 +140,13 @@ jsonObj readScene(const char* path) {
                 exit(EXIT_FAILURE);
             }
 
-            memset(obj, 0, sizeof(*light));
+            memset(light, 0, sizeof(*light));
 
-            jsonObj.lights[lightsSize++] = light;
+            light->radialAtten[2] = 1;
+
+            jsonObj.lights = realloc(jsonObj.lights, lightsSize++ *
+                sizeof(*(jsonObj.lights)));
+            jsonObj.lights[lightsSize - 1] = light;
         }
         else if(strcmp(type, "camera") != 0) {
             fprintf(stderr, "Error: Line %zu: Unknown type %s", line,
