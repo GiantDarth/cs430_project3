@@ -48,7 +48,7 @@ static inline vector3d vector3d_cross(vector3d first, vector3d second) {
 }
 
 static inline double vector3d_magnitude(vector3d vector) {
-    return sqrt(pow(vector.x, 2) + pow(vector.y, 2) + pow(vector.z, 2));
+    return sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
 }
 
 static inline vector3d vector3d_zero() {
